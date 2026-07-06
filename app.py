@@ -320,13 +320,17 @@ st.markdown("### 🗂️ Database Log")
 tab1, tab2, tab3 = st.tabs(["Raw Data", "Preprocessed", "Label & Score"])
 
 with tab1:
-    st.dataframe(df_raw.head(100), use_container_width=True)
+    # Buang kolom 'label' dan 'score' khusus untuk tampilan Raw Data
+    df_raw_display = df_raw.drop(columns=['label', 'score'], errors='ignore')
+    st.dataframe(df_raw_display.head(100), use_container_width=True)
 with tab2:
     st.dataframe(df_labelled[['Comment', 'PreposText', 'stemmed', 'FinalNormalizer']].head(100), use_container_width=True)
 with tab3:
     st.dataframe(df_labelled.head(100), use_container_width=True)
     csv = df_labelled.to_csv(index=False).encode('utf-8')
     st.download_button(label="Download Data Prediksi (CSV)", data=csv, file_name='data_sentimen.csv', mime='text/csv')
+
+st.markdown("---")
 
 st.markdown("---")
 

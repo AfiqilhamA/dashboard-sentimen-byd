@@ -262,16 +262,20 @@ if 'score' in df_labelled.columns and 'label_clean' in df_labelled.columns:
     df_contoh = df_labelled.dropna(subset=['Comment', 'score']).copy()
     df_contoh['Comment'] = df_contoh['Comment'].astype(str)
     
-    # 2. FILTER PINTAR: Buang komentar super pendek (<15 huruf) biar gak aneh,
-    # dan buang komentar cerpen (>250 huruf) biar gak ambigu
+    # 2. FILTER PINTAR: Buang komentar super pendek (<15 huruf) dan cerpen (>250 huruf)
     df_contoh = df_contoh[(df_contoh['Comment'].str.len() >= 15) & (df_contoh['Comment'].str.len() <= 250)]
     
-    # 3. AMBIL YANG PALING TEGAS (Bukan Random)
-    # Filter per kelas sentimen
-    pos_pool = df_contoh[df_contoh['label_clean'].isin(['positif', 'positive'])]
-    neg_pool = df_contoh[df_contoh['label_clean'].isin(['negatif', 'negative'])]
+    # 3. Pisahkan Positif dan Negatif
+    pos_pool = df_contoh[df_contoh['label_clean'].isin(['positif', 'positive'])].copy()
+    neg_pool = df_contoh[df_contoh['label_clean'].isin(['negatif', 'negative'])].copy()
     
-    # Ambil 3 skor tertinggi (paling positif) dan 3 skor terendah (paling negatif)
+    # 4. FILTER ANTI-DRAMA (Khusus Negatif)
+    # Buang komentar yang isinya orang berantem/toxic biar yang muncul murni keluhan soal mobil
+    drama_words = ['@', 'fanboy', 'bacot', 'buzzer', 'tolol', 'bego', 'goblok', 'siapa']
+    for word in drama_words:
+        neg_pool = neg_pool[~neg_pool['Comment'].str.contains(word, case=False, na=False)]
+    
+    # 5. AMBIL YANG PALING TEGAS (Skor tertinggi & terendah, BUKAN random)
     top_pos = pos_pool.nlargest(3, 'score') if not pos_pool.empty else pos_pool
     top_neg = neg_pool.nsmallest(3, 'score') if not neg_pool.empty else neg_pool
     

@@ -5,9 +5,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+from sklearn.utils import resample
+from sklearn.model_selection import train_test_split
 
 # --- 1. KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="Dashboard Sentimen", layout="wide")
+st.set_page_config(page_title="Dashboard Analisis Sentimen", layout="wide")
 
 # --- 2. CSS CUSTOM (TEMA MODERN DARK - ENTERPRISE) ---
 st.markdown("""
@@ -46,6 +48,7 @@ if 'history' not in st.session_state:
 # --- 4. LOAD MODEL ---
 @st.cache_resource
 def load_model():
+    # Pastikan load file ini karena file ini yang menyimpan Grid Search CV terbaik
     with open('sentiment_model.pkl', 'rb') as file:
         model = pickle.load(file)
     return model
@@ -55,11 +58,11 @@ try:
 except Exception as e:
     st.error(f"Gagal memuat model: {e}")
 
-# --- 5. LOAD DATA & APLIKASIKAN LOGIKA JUPYTER ---
+# --- 5. LOAD DATA (DISAMAKAN 100% DENGAN JUPYTER) ---
 @st.cache_data
 def load_data():
     df_raw = pd.read_csv("rawdata.csv")
-    df_labelled = pd.read_csv("labelledYT (4).csv") 
+    df_labelled = pd.read_csv("labelledYT (5).csv") 
     
     if 'Timestamp' in df_labelled.columns:
         df_labelled['Timestamp'] = pd.to_datetime(df_labelled['Timestamp'], errors='coerce')
@@ -69,18 +72,8 @@ def load_data():
     if 'score' in df_labelled.columns:
         df_labelled['score'] = pd.to_numeric(df_labelled['score'], errors='coerce').fillna(0)
         
-    def relabel_jupyter(score):
-        if score > 2:
-            return "positif"
-        elif score < -3:
-            return "negatif"
-        else:
-            return "netral"
-            
-    if 'score' in df_labelled.columns:
-        df_labelled['label_clean'] = df_labelled['score'].apply(relabel_jupyter)
-    else:
-        df_labelled['label_clean'] = df_labelled['label'].astype(str).str.lower().str.strip()
+    # Murni menggunakan kolom 'label' asli CSV tanpa menghitung skor lagi
+    df_labelled['label_clean'] = df_labelled['label'].astype(str).str.lower().str.strip()
         
     return df_raw, df_labelled
 
@@ -103,17 +96,35 @@ except Exception as e:
     total_valid, positif_count, negatif_count, netral_count = 0, 0, 0, 0
     pos_pct, neg_pct, net_pct = 0, 0, 0
 
-# --- 6. MENGHITUNG AKURASI MODEL ---
+# --- 6. MENGHITUNG AKURASI MODEL (REPLIKASI DINAMIS DARI JUPYTER) ---
 try:
-    df_eval = df_labelled.dropna(subset=['Comment', 'label_clean']).copy()
-    df_eval = df_eval[df_eval['label_clean'].isin(['positif', 'negatif'])]
-    df_eval['Comment'] = df_eval['Comment'].astype(str)
-    df_eval = df_eval[df_eval['Comment'].str.split().str.len() >= 3]
+    # 1. Drop NA persis kayak di Jupyter
+    df_eval = df_labelled.dropna(subset=['FinalNormalizer', 'label_clean']).copy()
     
-    y_true = df_eval['label_clean'].tolist()
-    preds = model_ai.predict(df_eval['Comment'].tolist())
+    # 2. Ambil data positif dan negatif
+    df_pos = df_eval[(df_eval["label_clean"] == "positif") | (df_eval["label_clean"] == "positive")]
+    df_neg = df_eval[(df_eval["label_clean"] == "negatif") | (df_eval["label_clean"] == "negative")]
+    
+    # 3. Lakukan Mean Resampling & Balancing data
+    target_n = int(abs((len(df_pos) + len(df_neg)) / 2))
+    df_pos_bal = resample(df_pos, replace=True, n_samples=target_n, random_state=42)
+    df_neg_bal = resample(df_neg, replace=True, n_samples=target_n, random_state=42)
+    df_balanced = pd.concat([df_pos_bal, df_neg_bal]).sample(frac=1, random_state=42)
+    
+    # 4. Train-Test Split (Gunakan 30% Test Size untuk diuji)
+    X = df_balanced["FinalNormalizer"].astype(str)
+    y = df_balanced["label_clean"]
+    
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42, stratify=y
+    )
+    
+    # 5. Prediksi murni menggunakan Test Set
+    y_true = y_test.tolist()
+    preds = model_ai.predict(X_test.tolist())
     y_pred = [str(p).lower().strip() for p in preds]
     
+    # 6. Hitung skor akurasi
     correct_predictions = sum(1 for true, pred in zip(y_true, y_pred) if true == pred)
     acc_score = (correct_predictions / len(y_true)) * 100 if len(y_true) > 0 else 0
 except Exception as e:
@@ -312,7 +323,6 @@ with col_input:
             else:
                 st.error(f"Status Prediksi: {sentimen}")
             
-            # Ganti insert jadi append biar nambahnya ke bawah terus
             st.session_state.history.append({"Teks Komentar": user_input, "Hasil Sentimen": sentimen})
         else:
             st.warning("Kolom teks masih kosong, silakan isi terlebih dahulu!")

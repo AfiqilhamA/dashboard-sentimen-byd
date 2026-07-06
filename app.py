@@ -96,7 +96,7 @@ except Exception as e:
     total_valid, positif_count, negatif_count, netral_count = 0, 0, 0, 0
     pos_pct, neg_pct, net_pct = 0, 0, 0
 
-# --- 6. MENGHITUNG AKURASI MODEL (REPLIKASI DINAMIS DARI JUPYTER) ---
+# --- 6. MENGHITUNG AKURASI MODEL (REPLIKASI DINAMIS DARI JUPYTER 80:20) ---
 try:
     # 1. Drop NA persis kayak di Jupyter
     df_eval = df_labelled.dropna(subset=['FinalNormalizer', 'label_clean']).copy()
@@ -105,18 +105,19 @@ try:
     df_pos = df_eval[(df_eval["label_clean"] == "positif") | (df_eval["label_clean"] == "positive")]
     df_neg = df_eval[(df_eval["label_clean"] == "negatif") | (df_eval["label_clean"] == "negative")]
     
-    # 3. Lakukan Mean Resampling & Balancing data
-    target_n = int(abs((len(df_pos) + len(df_neg)) / 2))
-    df_pos_bal = resample(df_pos, replace=True, n_samples=target_n, random_state=42)
-    df_neg_bal = resample(df_neg, replace=True, n_samples=target_n, random_state=42)
+    # 3. Resampling sesuai Jupyter terbaru (Tanpa menyamaratakan jumlah)
+    a = len(df_pos)
+    b = len(df_neg)
+    df_pos_bal = resample(df_pos, replace=True, n_samples=a, random_state=42)
+    df_neg_bal = resample(df_neg, replace=True, n_samples=b, random_state=42)
     df_balanced = pd.concat([df_pos_bal, df_neg_bal]).sample(frac=1, random_state=42)
     
-    # 4. Train-Test Split (Gunakan 30% Test Size untuk diuji)
+    # 4. Train-Test Split (Gunakan 20% Test Size persis seperti skenario 80:20)
     X = df_balanced["FinalNormalizer"].astype(str)
     y = df_balanced["label_clean"]
     
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42, stratify=y
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
     
     # 5. Prediksi murni menggunakan Test Set

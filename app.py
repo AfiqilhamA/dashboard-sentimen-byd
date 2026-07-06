@@ -270,10 +270,19 @@ if 'score' in df_labelled.columns and 'label_clean' in df_labelled.columns:
     neg_pool = df_contoh[df_contoh['label_clean'].isin(['negatif', 'negative'])].copy()
     
     # 4. FILTER ANTI-DRAMA & ANTI-OOT (Khusus Negatif)
-    # Buang komentar toxic dan komentar yang melenceng bahas merek/mobil kompetitor
-    exclude_words = ['@', 'fanboy', 'bacot', 'buzzer', 'tolol', 'bego', 'goblok', 'siapa', 'zenix', 'innova', 'wuling', 'ioniq', 'air ev']
+    # Buang komentar toxic, kompetitor, dan debat propaganda geopolitik
+    exclude_words = [
+        '@', 'fanboy', 'bacot', 'buzzer', 'tolol', 'bego', 'goblok', 'siapa', 
+        'zenix', 'innova', 'wuling', 'ioniq', 'air ev', 'sales',
+        'propaganda', 'amrik', 'molis cina', 'cina', 'china', 'politik'
+    ]
     for word in exclude_words:
-        neg_pool = neg_pool[~neg_pool['Comment'].str.contains(word, case=False, na=False)]
+        neg_pool = neg_pool[~neg_pool['Comment'].str.contains(word, case=False, na=False, regex=False)]
+        
+    # Tambahan filter khusus Regex biar kata 'ice' gak ngehapus 'service' dan 'bang' gak ngehapus 'bangku'
+    regex_words = [r'\bice\b', r'\bbang\b']
+    for word in regex_words:
+        neg_pool = neg_pool[~neg_pool['Comment'].str.contains(word, case=False, na=False, regex=True)]
     
     # 5. AMBIL YANG PALING TEGAS (Skor tertinggi & terendah, BUKAN random)
     top_pos = pos_pool.nlargest(3, 'score') if not pos_pool.empty else pos_pool

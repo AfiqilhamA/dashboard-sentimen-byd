@@ -269,10 +269,10 @@ if 'score' in df_labelled.columns and 'label_clean' in df_labelled.columns:
     pos_pool = df_contoh[df_contoh['label_clean'].isin(['positif', 'positive'])].copy()
     neg_pool = df_contoh[df_contoh['label_clean'].isin(['negatif', 'negative'])].copy()
     
-    # 4. FILTER ANTI-DRAMA (Khusus Negatif)
-    # Buang komentar yang isinya orang berantem/toxic biar yang muncul murni keluhan soal mobil
-    drama_words = ['@', 'fanboy', 'bacot', 'buzzer', 'tolol', 'bego', 'goblok', 'siapa']
-    for word in drama_words:
+    # 4. FILTER ANTI-DRAMA & ANTI-OOT (Khusus Negatif)
+    # Buang komentar toxic dan komentar yang melenceng bahas merek/mobil kompetitor
+    exclude_words = ['@', 'fanboy', 'bacot', 'buzzer', 'tolol', 'bego', 'goblok', 'siapa', 'zenix', 'innova', 'wuling', 'ioniq', 'air ev']
+    for word in exclude_words:
         neg_pool = neg_pool[~neg_pool['Comment'].str.contains(word, case=False, na=False)]
     
     # 5. AMBIL YANG PALING TEGAS (Skor tertinggi & terendah, BUKAN random)

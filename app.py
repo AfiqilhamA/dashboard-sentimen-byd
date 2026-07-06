@@ -255,11 +255,22 @@ if 'Timestamp' in df_labelled.columns:
     st.write("---")
 
 # --- 12. CONTOH KOMENTAR ---
-if 'score' in df_labelled.columns:
+if 'label_clean' in df_labelled.columns:
     st.markdown("### 🔥 Contoh Komentar Positif dan Negatif")
     
-    top_pos = df_labelled[df_labelled['label_clean'] == 'positif'].nlargest(3, 'score')
-    top_neg = df_labelled[df_labelled['label_clean'] == 'negatif'].nsmallest(3, 'score')
+    # 1. Pastikan data tidak kosong & ubah ke string
+    df_contoh = df_labelled.dropna(subset=['Comment']).copy()
+    df_contoh['Comment'] = df_contoh['Comment'].astype(str)
+    
+    # 2. FILTER: Batasi maksimal 250 karakter agar komentar tegas (tidak ambigu seperti cerpen)
+    df_contoh = df_contoh[df_contoh['Comment'].str.len() <= 250]
+    
+    # 3. RANDOMIZE: Ambil 3 sampel secara acak dari data yang sudah difilter
+    pos_pool = df_contoh[df_contoh['label_clean'].isin(['positif', 'positive'])]
+    neg_pool = df_contoh[df_contoh['label_clean'].isin(['negatif', 'negative'])]
+    
+    top_pos = pos_pool.sample(n=3) if len(pos_pool) >= 3 else pos_pool
+    top_neg = neg_pool.sample(n=3) if len(neg_pool) >= 3 else neg_pool
     
     col_viral1, col_viral2 = st.columns(2, gap="large")
     
@@ -267,10 +278,11 @@ if 'score' in df_labelled.columns:
         st.markdown(f"<h4 style='color:{color_pos};'>🟢 Komentar Positif</h4>", unsafe_allow_html=True)
         for _, row in top_pos.iterrows():
             likes_text = f"👍 {int(row['Likes'])} Likes | " if 'Likes' in row and pd.notna(row['Likes']) else ""
+            score_text = f"🎯 Skor: {row['score']}" if 'score' in row and pd.notna(row['score']) else ""
             st.markdown(f"""
             <div class='viral-card' style='border-color:{color_pos};'>
                 <p style='font-style:italic; font-size:14px; margin-bottom:5px;'>"{row['Comment']}"</p>
-                <b style='color:#38BDF8;'>{likes_text} 🎯 Skor: {row['score']}</b>
+                <b style='color:#38BDF8;'>{likes_text} {score_text}</b>
             </div>
             """, unsafe_allow_html=True)
             
@@ -278,10 +290,11 @@ if 'score' in df_labelled.columns:
         st.markdown(f"<h4 style='color:{color_neg};'>🔴 Komentar Negatif</h4>", unsafe_allow_html=True)
         for _, row in top_neg.iterrows():
             likes_text = f"👍 {int(row['Likes'])} Likes | " if 'Likes' in row and pd.notna(row['Likes']) else ""
+            score_text = f"🎯 Skor: {row['score']}" if 'score' in row and pd.notna(row['score']) else ""
             st.markdown(f"""
             <div class='viral-card' style='border-color:{color_neg};'>
                 <p style='font-style:italic; font-size:14px; margin-bottom:5px;'>"{row['Comment']}"</p>
-                <b style='color:#38BDF8;'>{likes_text} 🎯 Skor: {row['score']}</b>
+                <b style='color:#38BDF8;'>{likes_text} {score_text}</b>
             </div>
             """, unsafe_allow_html=True)
             

@@ -270,11 +270,12 @@ if 'score' in df_labelled.columns and 'label_clean' in df_labelled.columns:
     neg_pool = df_contoh[df_contoh['label_clean'].isin(['negatif', 'negative'])].copy()
     
     # 4. FILTER ANTI-DRAMA & ANTI-OOT (Khusus Negatif)
-    # Buang komentar toxic, kompetitor, dan debat propaganda geopolitik
+    # Buang komentar toxic, kompetitor, debat propaganda, dan teori konspirasi
     exclude_words = [
         '@', 'fanboy', 'bacot', 'buzzer', 'tolol', 'bego', 'goblok', 'siapa', 
         'zenix', 'innova', 'wuling', 'ioniq', 'air ev', 'sales',
-        'propaganda', 'amrik', 'molis cina', 'cina', 'china', 'politik'
+        'propaganda', 'amrik', 'molis cina', 'cina', 'china', 'politik',
+        'konspirasi', 'bbm', 'hanif', 'disetting', 'berita'
     ]
     for word in exclude_words:
         neg_pool = neg_pool[~neg_pool['Comment'].str.contains(word, case=False, na=False, regex=False)]
@@ -313,7 +314,6 @@ if 'score' in df_labelled.columns and 'label_clean' in df_labelled.columns:
             """, unsafe_allow_html=True)
             
     st.write("---")
-
 # --- 13. ETALASE DATA & DOWNLOAD ---
 st.markdown("### 🗂️ Database Log")
 tab1, tab2, tab3 = st.tabs(["Raw Data", "Preprocessed", "Label & Score"])
